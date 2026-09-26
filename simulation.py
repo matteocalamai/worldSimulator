@@ -37,6 +37,23 @@ class Person:
         self.hunger -= amount
         self.hunger = max(0, self.hunger)
 
+    def work(self, deltaTime):
+        # a person will not work if they are too tired or too hungry
+        if self.hunger >= 80:
+            return 0
+
+        if self.energy <= 0:
+            return 0
+
+        # work consumes energy
+        energyCost = deltaTime * 3
+        self.energy -= energyCost
+        self.energy = max(0, self.energy)
+
+        # food produced is proportional to the time worked
+        foodProduced = deltaTime * 2
+        return foodProduced
+
 class World:
     def __init__(self):
         self.time = 0.0
@@ -46,12 +63,16 @@ class World:
     def step(self, deltaTime):
         self.time += deltaTime
 
+        # update people
         for person in self.people:
             person.update(deltaTime)
 
+            foodProduced = person.work(deltaTime)
+            self.food += foodProduced
+
             if person.hunger >= 50 and person.hunger < 80:
                 self.feedPerson(person, 30)
-
+    
     def feedPerson(self, person, amount):
         if self.food <= 0:
             return
