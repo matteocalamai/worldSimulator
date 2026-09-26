@@ -7,7 +7,12 @@ class Event:
         return f"[Day {self.time}] {self.message}"
 
 class Person:
+    nextID = 1
+
     def __init__(self, age):
+        self.id = Person.nextID
+        Person.nextID += 1
+        
         self.age = age
         self.health = 100.0
         self.energy = 100.0
@@ -33,12 +38,11 @@ class Person:
 
     def __repr__(self):
         return (
-            f"Person("
-            f"age={self.age:.2f}, "
-            f"health={self.health:.2f}, "
-            f"energy={self.energy:.2f}, "
-            f"hunger={self.hunger:.2f}"
-            f")"
+            f"Person #{self.id} | "
+            f"Age: {self.age:.1f} | "
+            f"Health: {self.health:.1f} | "
+            f"Energy: {self.energy:.1f} | "
+            f"Hunger: {self.hunger:.1f}"
         )
 
     def eat(self, amount):
@@ -87,7 +91,7 @@ class World:
                 self.food += foodProduced
 
                 self.addEvent(
-                    f"Person worked and produced "
+                    f"Person #{person.id} worked and produced "
                     f"{foodProduced:.1f} food"
                 )
 
@@ -96,8 +100,34 @@ class World:
                 
                 if foodConsumed > 0:
                     self.addEvent(
-                        f"Person ate {foodConsumed:.1f} food"
+                        f"Person #{person.id} ate "
+                        f"{foodConsumed:.1f} food"
                     )
+
+    def showStatus(self):
+        print()
+        print("=" * 50)
+        print("WORLD")
+        print("=" * 50)
+
+        print(f"Day:        {self.time:.0f}")
+        print(f"Population: {len(self.people)}")
+        print(f"Food:       {self.food:.1f}")
+
+        print()
+        print("PEOPLE")
+        print("-" * 50)
+
+        for person in self.people:
+            print(
+                f"#{person.id:<3} "
+                f"Age: {person.age:5.1f} | "
+                f"Health: {person.health:5.1f} | "
+                f"Energy: {person.energy:5.1f} | "
+                f"Hunger: {person.hunger:5.1f}"
+            )
+
+        print("=" * 50) 
 
                 
     
@@ -116,22 +146,29 @@ class World:
 
 world = World()
 
+world.people.append(Person(20))
 world.people.append(Person(25))
-# world.people.append(Person(42))
-# world.people.append(Person(17))
+world.people.append(Person(31))
+world.people.append(Person(40))
+world.people.append(Person(55))
 
-print("Initial state:")
-print(world.people)
-
-# simulate 100 days
-for _ in range(100):
+for day in range(100):
     world.step(1)
 
-print("\nAfter 100 days:")
-print(world.people)
+print("PEOPLE")
+print("--------------------")
 
-print("\nEVENTS")
+for person in world.people:
+    print(person)
+
+print()
+print("EVENTS")
 print("--------------------")
 
 for event in world.events:
     print(event)
+
+print()
+print(f"Food remaining: {world.food:.1f}")
+
+world.showStatus()
