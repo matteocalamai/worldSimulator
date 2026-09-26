@@ -9,7 +9,7 @@ class Event:
 class Person:
     nextID = 1
 
-    def __init__(self, age, workEfficiency):
+    def __init__(self, age, workEfficiency, hungerThreshold):
         self.id = Person.nextID
         Person.nextID += 1
         
@@ -19,6 +19,7 @@ class Person:
         self.hunger = 0.0
 
         self.workEfficiency = workEfficiency
+        self.hungerThreshold = hungerThreshold
 
     def update(self, deltaTime):
 
@@ -38,8 +39,8 @@ class Person:
         self.hunger = max(0, min(100, self.hunger))
         self.health = max(0, min(100, self.health))
 
-    def decide(self):
-        if self.hunger >= 50:
+    def decide(self, foodAvailable):
+        if self.hunger >= self.hungerThreshold and foodAvailable:
             return "eat"
 
         if self.energy <= 20:
@@ -61,12 +62,11 @@ class Person:
         self.hunger = max(0, self.hunger)
 
     def work(self, deltaTime):
-        # a person will not work if they are too tired or too hungry
-        if self.hunger >= 80:
-            return 0
+        # introduced in order to avoid bottle neck
+        hungerPenalty = 1.0
 
-        if self.energy <= 0:
-            return 0
+        if self.hunger >= 80:
+            hungerPenalty = 0.5
 
         # work consumes energy
         energyCost = deltaTime * 3
@@ -74,7 +74,14 @@ class Person:
         self.energy = max(0, self.energy)
 
         # food produced is proportional to the time worked
-        foodProduced = deltaTime * 2 * self.workEfficiency
+        # food produced is also affected by the person's effieciency and hunger
+        foodProduced = (
+            deltaTime
+            * 2
+            * self.workEfficiency
+            * hungerPenalty
+        )
+
         return foodProduced
 
     def rest(self, deltaTime):
@@ -101,7 +108,7 @@ class World:
             # update people
             person.update(deltaTime)
 
-            action = person.decide()
+            action = person.decide(self.food > 0)
             self.addEvent(
                 f"Person #{person.id} chose to {action}"
             )
@@ -183,13 +190,13 @@ class World:
 
 world = World()
 
-world.people.append(Person(20, 0.8))
-world.people.append(Person(25, 1.0))
-world.people.append(Person(31, 1.2))
-world.people.append(Person(40, 1.0))
-world.people.append(Person(55, 0.7))
+world.people.append(Person(20, 0.8, 40))
+world.people.append(Person(25, 1.0, 50))
+world.people.append(Person(31, 1.2, 65))
+world.people.append(Person(40, 1.0, 50))
+world.people.append(Person(55, 0.7, 70))
 
-for day in range(100):
+for day in range(500):
     world.step(1)
 
 print("PEOPLE")
