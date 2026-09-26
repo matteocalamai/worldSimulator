@@ -1,3 +1,11 @@
+class Event:
+    def __init__(self, time, message):
+        self.time = time
+        self.message = message
+
+    def __repr__(self):
+        return f"[Day {self.time}] {self.message}"
+
 class Person:
     def __init__(self, age):
         self.age = age
@@ -59,30 +67,52 @@ class World:
         self.time = 0.0
         self.people = []
         self.food = 100.0
+        self.events = []
+
+    def addEvent(self, message):
+        event = Event(self.time, message)
+        self.events.append(event)
 
     def step(self, deltaTime):
         self.time += deltaTime
 
-        # update people
         for person in self.people:
+            # update people
             person.update(deltaTime)
 
+            # work
             foodProduced = person.work(deltaTime)
-            self.food += foodProduced
+
+            if foodProduced > 0:
+                self.food += foodProduced
+
+                self.addEvent(
+                    f"Person worked and produced "
+                    f"{foodProduced:.1f} food"
+                )
 
             if person.hunger >= 50 and person.hunger < 80:
-                self.feedPerson(person, 30)
+                foodConsumed = self.feedPerson(person, 30)
+                
+                if foodConsumed > 0:
+                    self.addEvent(
+                        f"Person ate {foodConsumed:.1f} food"
+                    )
+
+                
     
     def feedPerson(self, person, amount):
         if self.food <= 0:
-            return
+            return 0
 
         foodConsumed = min(amount, self.food)
 
         person.eat(foodConsumed)
         self.food -= foodConsumed
 
+        return foodConsumed
 
+# --------------------
 
 world = World()
 
@@ -100,3 +130,8 @@ for _ in range(100):
 print("\nAfter 100 days:")
 print(world.people)
 
+print("\nEVENTS")
+print("--------------------")
+
+for event in world.events:
+    print(event)
