@@ -29,7 +29,6 @@ class Person:
 
         # needs
         self.energy -= deltaTime * 2
-        self.hunger += deltaTime * 1
 
         # health
         if self.hunger > 80:
@@ -97,6 +96,14 @@ class Person:
         self.hunger -= amount
         self.hunger = max(0, self.hunger)
 
+    def consumeEnergy(self, amount):
+        self.energy -= amount
+        self.energy = max(0, self.energy)
+
+    def increaseHunger(self, amount):
+        self.hunger += amount
+        self.hunger = min(100, self.hunger)
+
     def work(self, deltaTime):
         # introduced in order to avoid bottle neck
         hungerPenalty = 1.0
@@ -104,10 +111,9 @@ class Person:
         if self.hunger >= 80:
             hungerPenalty = 0.5 + (self.hungerResilience * 0.5)
 
-        # work consumes energy
-        energyCost = deltaTime * 3
-        self.energy -= energyCost
-        self.energy = max(0, self.energy)
+        # work consumes energy and increases hunger
+        self.consumeEnergy(deltaTime * 3)
+        self.increaseHunger(deltaTime * 3)
 
         # food produced is proportional to the time worked
         # food produced is also affected by the person's effieciency and hunger
@@ -121,10 +127,10 @@ class Person:
         return foodProduced
 
     def rest(self, deltaTime):
-        energyRecovered = deltaTime * 4
-
-        self.energy += energyRecovered
+        self.energy += deltaTime * 4
         self.energy = min(100, self.energy)
+
+        self.increaseHunger(deltaTime * 0.5)
 
 class World:
     def __init__(self):
@@ -140,20 +146,18 @@ class World:
     def step(self, deltaTime):
         self.time += deltaTime
 
+        # update
         for person in self.people:
-            # update people
             person.update(deltaTime)
 
-            action = person.decide(self.food > 0)
-            self.addEvent(
-                f"Person #{person.id} chose to {action}"
-            )
+        # decision
+        decisions = {}
+        for person in self.people:
+            decisions[person.id] = person.decide(self.food > 0)
 
-            self.executeAction(
-                person,
-                action,
-                deltaTime
-            )
+        # execution
+        for person in self.people:
+            self.executeAction(person, decisions[person.id], deltaTime)
 
     def showStatus(self):
         print()
