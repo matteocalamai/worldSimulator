@@ -9,7 +9,7 @@ class Event:
 class Person:
     nextID = 1
 
-    def __init__(self, age, workEfficiency, hungerThreshold):
+    def __init__(self, age, workEfficiency, hungerThreshold, hungerResilience):
         self.id = Person.nextID
         Person.nextID += 1
         
@@ -20,6 +20,7 @@ class Person:
 
         self.workEfficiency = workEfficiency
         self.hungerThreshold = hungerThreshold
+        self.hungerResilience = hungerResilience
 
     def update(self, deltaTime):
 
@@ -39,14 +40,31 @@ class Person:
         self.hunger = max(0, min(100, self.hunger))
         self.health = max(0, min(100, self.health))
 
+    def evaluateEat(self, foodAvailable):
+        if not foodAvailable:
+            return 0
+
+        return self.hunger
+
+    def evaluateWork(self):
+        return self.energy
+
+    def evaluateRest(self):
+        return 100 - self.energy
+
+    def evaluateActions(self, foodAvailable):
+        scores = {
+            "eat": self.evaluateEat(foodAvailable),
+            "work": self.evaluateWork(),
+            "rest": self.evaluateRest()
+        }
+
+        return scores
+
     def decide(self, foodAvailable):
-        if self.hunger >= self.hungerThreshold and foodAvailable:
-            return "eat"
+        scores = self.evaluateActions(foodAvailable)
 
-        if self.energy <= 20:
-            return "rest"
-
-        return "work"
+        return max(scores, key=scores.get)
 
     def __repr__(self):
         return (
@@ -66,7 +84,7 @@ class Person:
         hungerPenalty = 1.0
 
         if self.hunger >= 80:
-            hungerPenalty = 0.5
+            hungerPenalty = 0.5 + (self.hungerResilience * 0.5)
 
         # work consumes energy
         energyCost = deltaTime * 3
@@ -190,11 +208,11 @@ class World:
 
 world = World()
 
-world.people.append(Person(20, 0.8, 40))
-world.people.append(Person(25, 1.0, 50))
-world.people.append(Person(31, 1.2, 65))
-world.people.append(Person(40, 1.0, 50))
-world.people.append(Person(55, 0.7, 70))
+world.people.append(Person(20, 0.8, 40, 0.3))
+world.people.append(Person(25, 1.0, 50, 0.6))
+world.people.append(Person(31, 1.2, 65, 0.9))
+world.people.append(Person(40, 1.0, 50, 0.5))
+world.people.append(Person(55, 0.7, 70, 0.2))
 
 for day in range(500):
     world.step(1)
