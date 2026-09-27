@@ -5,7 +5,7 @@ class World:
     def __init__(self):
         self.time = 0.0
         self.people = []
-        self.food = 100.0
+        self.food = 20.0
         self.events = []
 
     def addEvent(self, message):
@@ -22,7 +22,7 @@ class World:
         # decision
         decisions = {}
         for person in self.people:
-            decisions[person.id] = person.decide(self.food > 0)
+            decisions[person.id] = person.decide(self.food)
 
         # execution
         for person in self.people:

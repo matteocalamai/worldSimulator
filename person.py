@@ -42,21 +42,23 @@ class Person:
 
         return hungerAboveThreshold ** 2
 
-    def evaluateWork(self):
-        energyScore = self.energy
+    def evaluateWork(self, foodAvailable):
+        foodNeed = max(0, 100 - foodAvailable)
         hungerPenalty = self.hunger * 0.5
-        efficiencyBonus = self.workEfficiency * 10
 
-        return max(0, energyScore - hungerPenalty + efficiencyBonus)
+        return max(0, foodNeed - hungerPenalty)
 
-    def evaluateRest(self):
-        return 100 - self.energy
+    def evaluateRest(self, foodAvailable):
+        restNeed = 100 - self.energy
+        foodPressure = max(0, 100 - foodAvailable)
+
+        return max(0, restNeed - foodPressure)
 
     def evaluateActions(self, foodAvailable):
         scores = {
             "eat": self.evaluateEat(foodAvailable),
-            "work": self.evaluateWork(),
-            "rest": self.evaluateRest()
+            "work": self.evaluateWork(foodAvailable),
+            "rest": self.evaluateRest(foodAvailable)
         }
 
         return scores
@@ -108,12 +110,20 @@ class Person:
         self.increaseHunger(deltaTime * 3)
 
         # food produced is proportional to the time worked
-        # food produced is also affected by the person's effieciency and hunger
+        # food produced is also affected by the person's effieciency, hunger and energy
+        if self.energy <= 5:
+            energyFactor = 0
+        elif self.energy <= 20:
+            energyFactor = self.energy / 20
+        else:
+            energyFactor = 1.0
+        
         foodProduced = (
             deltaTime
             * 2
             * self.workEfficiency
             * hungerPenalty
+            * energyFactor
         )
 
         return foodProduced
