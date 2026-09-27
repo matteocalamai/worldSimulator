@@ -44,10 +44,19 @@ class Person:
         if not foodAvailable:
             return 0
 
-        return self.hunger
+        if self.hunger <= self.hungerThreshold:
+            return 0
+
+        hungerAboveThreshold = self.hunger - self.hungerThreshold
+
+        return hungerAboveThreshold ** 2
 
     def evaluateWork(self):
-        return self.energy
+        energyScore = self.energy
+        hungerPenalty = self.hunger * 0.5
+        efficiencyBonus = self.workEfficiency * 10
+
+        return max(0, energyScore - hungerPenalty + efficiencyBonus)
 
     def evaluateRest(self):
         return 100 - self.energy
@@ -63,6 +72,15 @@ class Person:
 
     def decide(self, foodAvailable):
         scores = self.evaluateActions(foodAvailable)
+
+        if self.hunger > self.hungerThreshold - 5:
+            print(
+                f"Person #{self.id} | "
+                f"Hunger: {self.hunger:.1f} | "
+                f"Eat: {scores['eat']:.1f} | "
+                f"Work: {scores['work']:.1f} | "
+                f"Rest: {scores['rest']:.1f}"
+            )
 
         return max(scores, key=scores.get)
 
@@ -214,7 +232,7 @@ world.people.append(Person(31, 1.2, 65, 0.9))
 world.people.append(Person(40, 1.0, 50, 0.5))
 world.people.append(Person(55, 0.7, 70, 0.2))
 
-for day in range(500):
+for day in range(60):
     world.step(1)
 
 print("PEOPLE")
