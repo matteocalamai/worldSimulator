@@ -8,6 +8,33 @@ class World:
         self.food = 20.0
         self.events = []
 
+        self.history = []
+
+    def getState(self, actions=None):
+        state = {
+            "time": self.time,
+            "food": self.food,
+            "population": len(self.people),
+            "people": []
+        }
+
+        for person in self.people:
+            personState = {
+                "id": person.id,
+                "age": person.age,
+                "health": person.health,
+                "energy": person.energy,
+                "hunger": person.hunger,
+                "workEfficiency": person.workEfficiency
+            }
+
+            if actions and person.id in actions:
+                personState["action"] = actions[person.id]
+
+            state["people"].append(personState)
+
+        return state
+
     def addEvent(self, message):
         event = Event(self.time, message)
         self.events.append(event)
@@ -27,6 +54,10 @@ class World:
         # execution
         for person in self.people:
             self.executeAction(person, decisions[person.id], deltaTime)
+
+        # observation
+        state = self.getState(decisions)
+        self.history.append(state)
 
     def showStatus(self):
         print()
@@ -99,29 +130,41 @@ class World:
 
 world = World()
 
-world.people.append(Person(20, 0.8, 40, 0.3))
-world.people.append(Person(25, 1.0, 50, 0.6))
-world.people.append(Person(31, 1.2, 65, 0.9))
-world.people.append(Person(40, 1.0, 50, 0.5))
-world.people.append(Person(55, 0.7, 70, 0.2))
+def createWorld():
+    world = World()
 
-for day in range(60):
-    world.step(1)
+    world.people.append(Person(20, 0.8, 40, 0.3))
+    world.people.append(Person(25, 1.0, 50, 0.6))
+    world.people.append(Person(31, 1.2, 65, 0.9))
+    world.people.append(Person(40, 1.0, 50, 0.5))
+    world.people.append(Person(55, 0.7, 70, 0.2))
 
-print("PEOPLE")
-print("--------------------")
+    return world
 
-for person in world.people:
-    print(person)
 
-print()
-print("EVENTS")
-print("--------------------")
+def runSimulation(world, days):
+    for day in range(days):
+        world.step(1)
 
-for event in world.events:
-    print(event)
 
-print()
-print(f"Food remaining: {world.food:.1f}")
+if __name__ == "__main__":
+    world = createWorld()
+    runSimulation(world, 60)
 
-world.showStatus()
+    print("PEOPLE")
+    print("--------------------")
+
+    for person in world.people:
+        print(person)
+
+    print()
+    print("EVENTS")
+    print("--------------------")
+
+    for event in world.events:
+        print(event)
+
+    print()
+    print(f"Food remaining: {world.food:.1f}")
+
+    world.showStatus()
