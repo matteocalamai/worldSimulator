@@ -1,300 +1,251 @@
-# Mini World Simulation
+# World Simulator
 
-A small Python simulation of a society made up of individuals who make decisions based on their needs and the resources available to them.
+A small Python simulation of a society where individuals make decisions based on their needs and the resources available to them.
 
-The project is primarily a programming and modeling exercise. The goal is not to build a complete game immediately, but to gradually build a small simulated world and observe how simple rules can produce behavior over time.
+The project is being developed as an experiment in software design, behavioral modeling, and emergent behavior. The aim is to understand the systems being built rather than hide them behind a large framework.
 
-## Project Goal
+## What it does
 
-The simulation is initially being developed without graphics.
+The simulation contains a world with:
 
-The **simulation engine** should remain independent from visualization, so that a renderer can be added later without having to rewrite the core world logic.
+- people with individual traits and internal needs;
+- a shared food supply;
+- a simple decision-making system;
+- working, resting, and eating;
+- events generated during the simulation;
+- a history of past world states.
 
-The project is being developed incrementally as a way to better understand:
+Each simulation step updates people, evaluates their decisions, executes those decisions, and records the resulting state.
 
-- object-oriented programming in Python;
-- state and behavior;
-- time-step based simulation;
-- resource management;
-- decision-making systems;
-- interactions between individuals and their environment;
-- emergent behavior.
+The model is intentionally small. It is not yet a complete game, economy, or population simulator.
 
-## Current State
-
-The simulation currently contains three main concepts:
-
-- `World` — represents the world and manages time, people, food, and events.
-- `Person` — represents an individual with age, health, energy, hunger, and personal traits.
-- `Event` — records what happens during the simulation.
-
-## Current Mechanics
-
-### Time
-
-The world advances through `World.step(deltaTime)`.
-
-Each time step updates the individuals and allows them to make a decision.
-
-Age is represented in years and increases proportionally to simulated time:
+## Project structure
 
 ```text
-1 day = 1 / 365 of a year
+worldSimulator/
+├── simulation.py    # World and simulation loop
+├── person.py        # Individual state, decisions, and actions
+├── event.py         # Simulation events
+├── observer.py      # Historical data access
+├── renderer.py      # Matplotlib analysis plots
+├── dashboard.py     # Streamlit interface
+├── requirements.txt # Python dependencies
+└── README.md
 ```
 
-### Needs
+The main architectural boundary is between the simulation and its presentation:
 
-Each person currently has three main needs:
+```text
+Person / Event
+      ↑
+    World
+      │
+      ├── history
+      │
+      ↓
+   Observer
+      │
+      ├── Renderer
+      └── Streamlit dashboard
+```
 
-- `health` — health, initially 100;
-- `energy` — energy, initially 100;
-- `hunger` — hunger, initially 0.
+The simulation does not depend on the dashboard or renderer. This keeps the model independent from how its state is displayed.
 
-As time passes:
+## The simulation
 
-- energy decreases;
-- hunger increases;
-- when hunger exceeds 80, health starts to decrease.
+### World
 
-Values are kept within the `0..100` range.
+`World` keeps track of:
 
-### Food
+- simulation time;
+- the population;
+- shared food;
+- generated events;
+- recorded historical states.
 
-The world has a global food supply.
+A simulation step follows this sequence:
 
-A person can consume food when they decide to eat. Consumed food is removed from the world's supply and reduces the person's hunger.
+```text
+World.step()
+    │
+    ├── update people
+    ├── make decisions
+    ├── execute actions
+    └── record the new state
+```
 
-If less food is available than requested, the person can consume only the amount that remains.
+The default world starts with five people with different characteristics.
+
+### People
+
+Each `Person` currently has:
+
+- age;
+- health;
+- energy;
+- hunger;
+- work efficiency;
+- hunger threshold;
+- hunger resilience.
+
+Needs are kept within a `0..100` range.
+
+Age advances with simulated time. Energy decreases over time, and prolonged hunger damages health.
 
 ### Decisions
 
-Each person can choose between three actions:
+A person evaluates three actions:
 
 - `eat`
 - `work`
 - `rest`
 
-The decision mainly depends on:
+The decision scores depend on the person's current state and the food available in the world.
 
-1. hunger level;
-2. food availability;
-3. energy level.
+The model is deterministic at this stage. Similar people under the same conditions can therefore make the same decisions. This is useful while studying the effects of the rules.
 
-In particular, a hungry person tries to eat when food is available. If they cannot eat and have low energy, they rest; otherwise, they work.
+### Work, rest, and food
 
-### Work
+Working produces food. Production depends on time worked, work efficiency, hunger, and available energy. Working also consumes energy and increases hunger.
 
-Working produces food for the world.
+Resting restores energy while increasing hunger slightly.
 
-The amount produced depends on:
+Eating consumes food from the shared supply and reduces the person's hunger.
 
-- time worked;
-- the person's `workEfficiency`;
-- the person's hunger level.
+## Observing the simulation
 
-Each person therefore has a different productivity.
+After each step, the world records a snapshot of its state. `Observer` provides access to this history without putting analysis logic inside `World`.
 
-When hunger reaches at least 80, production is reduced by half. This allows the simulation to keep producing food during periods of scarcity instead of reaching a complete deadlock.
+It currently supports:
 
-Working consumes energy.
+- world food history;
+- a person's historical state;
+- historical health, energy, and hunger;
+- a person's action history;
+- population action history.
 
-### Rest
+## Dashboard
 
-Rest recovers energy.
+The project includes a Streamlit dashboard.
 
-A person can recover energy up to a maximum of 100.
+Start it with:
 
-### Individual Differences
-
-Individuals are not identical.
-
-Each person currently has:
-
-- `workEfficiency` — efficiency when producing food;
-- `hungerThreshold` — hunger level at which the person tends to choose eating.
-
-These characteristics provide a first step toward creating behavioral differences between individuals.
-
-### Unique IDs
-
-Each person automatically receives a sequential ID.
-
-Example:
-
-```text
-Person #1
-Person #2
-Person #3
+```bash
+streamlit run dashboard.py
 ```
 
-IDs are also used in simulation events.
+The current interface has four sections.
 
-### Events
+### Overview
 
-The world keeps a list of events.
+Shows the current simulation day, population, and food supply.
 
-Events currently record things such as:
+### People
 
-- decisions;
-- food consumed;
-- food produced;
-- resting.
+A person can be selected to inspect current health, energy, hunger, age, and work efficiency. Historical health, energy, and hunger can also be viewed.
 
-Example:
+### Actions
 
-```text
-[Day 404.0] Person #1 chose to work
-[Day 404.0] Person #1 worked and produced 0.8 food
-[Day 404.0] Person #2 chose to eat
-[Day 404.0] Person #2 ate 0.8 food
-```
+Shows how many people are currently working, resting, or eating, together with recent simulation events.
 
-The event system will also be useful later for connecting the simulation engine to a possible visualization layer.
+### Statistics
 
-## Conceptual Structure
+The section is currently a placeholder for population-level statistics.
 
-```text
-World
- ├── time
- ├── food
- ├── people
- │    ├── Person
- │    ├── Person
- │    └── ...
- └── events
-      ├── Event
-      ├── Event
-      └── ...
-```
+The dashboard stores the current `World` in Streamlit session state, so navigating between sections does not recreate the simulation. The simulation can currently be advanced one day at a time from the sidebar.
 
-The current flow of one simulation day is roughly:
+## Running from Python
 
-```text
-World.step()
-    ↓
-update person
-    ↓
-person makes a decision
-    ↓
-execute action
-    ↓
-world updates resources
-    ↓
-create Event
-```
-
-## Running the Simulation
-
-Python is required.
-
-Run:
+The simulation can also be run without the dashboard:
 
 ```bash
 python simulation.py
 ```
 
-The program runs the simulation and then displays:
-
-- the final state of the people;
-- recorded events;
-- remaining food;
-- the overall world status.
-
-To change the simulation length, modify:
+The module provides:
 
 ```python
-for day in range(500):
-    world.step(1)
+world = createWorld()
+runSimulation(world, 60)
 ```
 
-For example, `range(1000)` simulates 1000 time steps.
+The command-line entry point runs a short simulation and prints the resulting people, events, and world status.
 
-## Initial Population
+## Development setup
 
-The simulation currently starts with five people with different characteristics:
+Create a virtual environment:
 
-| Person | Age | Efficiency | Hunger Threshold |
-|---|---:|---:|---:|
-| #1 | 20 | 0.8 | 40 |
-| #2 | 25 | 1.0 | 50 |
-| #3 | 31 | 1.2 | 65 |
-| #4 | 40 | 1.0 | 50 |
-| #5 | 55 | 0.7 | 70 |
+```bash
+python -m venv .venv
+```
 
-These values are intentionally simple. They are used to create slightly different individuals and observe how those differences affect the simulation.
+Activate it on macOS or Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+The `.venv` directory should not be committed to Git.
+
+## Why this project exists
+
+This is a learning project, but it is built as one evolving system rather than a collection of unrelated exercises.
+
+The focus is on:
+
+- object-oriented design;
+- separation of responsibilities;
+- simulation state;
+- time-step based systems;
+- resource constraints;
+- decision systems;
+- historical data;
+- visualization;
+- emergent behavior.
+
+Development is intentionally incremental. A mechanic is added, its behavior is observed, and only then is the model changed.
+
+Unexpected behavior is part of the project. If people synchronize, food runs out, or the system reaches an unstable state, the first question is which rules produced it rather than how to hide the behavior with arbitrary randomness.
+
+## Current limitations
+
+The model does not yet include:
+
+- births or deaths;
+- families or relationships;
+- multiple resources;
+- jobs or a developed economy;
+- inventories or ownership;
+- migration;
+- persistence of world state;
+- a configurable population;
+- a completed statistics section.
+
+These are possible future directions, not commitments for the next version.
 
 ## Roadmap
 
-The project is still in its early stages. Possible future developments include:
+Possible future work includes:
 
-### Next Steps
+1. improving the decision-making system;
+2. making individual behavior more expressive;
+3. separating update, decision, and action phases more clearly;
+4. adding meaningful population-level statistics;
+5. introducing additional resources and economic interactions;
+6. adding population dynamics;
+7. saving and loading simulation state;
+8. studying more complex emergent behavior.
 
-- improve the decision-making system;
-- introduce more behavioral variation;
-- better separate updating, decision, and action phases;
-- make the needs system more meaningful.
+The order is deliberately flexible. New features should earn their place by helping answer a useful question about the model.
 
-### Economy
+## Philosophy
 
-- multiple resource types;
-- resource gathering and consumption;
-- different jobs;
-- production and distribution;
-- trading between people;
-- ownership and inventories.
+The project is built one system at a time.
 
-### Population
-
-- birth;
-- death;
-- migration;
-- families and relationships;
-- generations.
-
-### Emergent Behavior
-
-The goal is to eventually reach situations where the overall behavior of the society is not directly scripted, but emerges from interactions between:
-
-```text
-individuals
-    +
-needs
-    +
-resources
-    +
-environment
-    +
-decisions
-```
-
-### Saving and Loading
-
-Future versions may include:
-
-- saving the state of the world;
-- loading a previous simulation;
-- replaying past events.
-
-### Renderer
-
-Only after the simulation engine becomes more solid, a graphical representation can be added.
-
-The idea is to keep the following layers separate:
-
-```text
-Simulation Core
-      ↓
-   World State
-      ↓
-    Renderer
-```
-
-This way, the renderer does not need to know the internal rules of the simulation.
-
-## Project Philosophy
-
-The project is being built **one system at a time**.
-
-The goal is not to immediately write hundreds of lines of code, but to add one mechanic, observe its behavior, find problems, and understand why the system reacts in a particular way.
-
-The simulation is therefore both a programming exercise and a laboratory for learning how to design software and model complex systems.
+The goal is not to produce the largest simulation possible. It is to keep the model small enough to understand while making it rich enough for interactions between simple rules to produce behavior worth investigating.
