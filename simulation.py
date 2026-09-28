@@ -39,6 +39,52 @@ class World:
         event = Event(self.time, message)
         self.events.append(event)
 
+    def resolveFoodRequests(self, decisions):
+        requests = {}
+
+        for person in self.people:
+            if decisions[person.id] == "eat":
+                requests[person.id] = person.getFoodRequest()
+
+        totalRequest = sum(requests.values())
+
+        if totalRequest <= 0 or self.food <= 0:
+            return
+
+        availableFood = self.food
+
+        for person in self.people:
+            if person.id not in requests:
+                continue
+
+            share = requests[person.id] / totalRequest
+            foodAmount = availableFood * share
+
+            foodConsumed = min(foodAmount, self.food)
+
+            person.eat(foodConsumed)
+            self.food -= foodConsumed
+
+            self.addEvent(
+                f"Person #{person.id} ate "
+                f"{foodConsumed:.1f} food"
+            )
+
+    def resolveActions(self, decisions, deltaTime):
+        for person in self.people:
+            action = decisions[person.id]
+
+            if action == "eat":
+                continue
+
+            self.executeAction(
+                person,
+                action,
+                deltaTime
+            )
+
+        self.resolveFoodRequests(decisions)
+
     def step(self, deltaTime):
         self.time += deltaTime
 
@@ -51,9 +97,8 @@ class World:
         for person in self.people:
             decisions[person.id] = person.decide(self.food)
 
-        # execution
-        for person in self.people:
-            self.executeAction(person, decisions[person.id], deltaTime)
+        # resolution
+        self.resolveActions(decisions, deltaTime)
 
         # observation
         state = self.getState(decisions)
@@ -126,6 +171,7 @@ class World:
                 f"Person #{person.id} rested"
             )
 
+
 # --------------------
 
 world = World()
@@ -149,22 +195,22 @@ def runSimulation(world, days):
 
 if __name__ == "__main__":
     world = createWorld()
-    runSimulation(world, 60)
+    runSimulation(world, 150)
 
     print("PEOPLE")
     print("--------------------")
 
-    for person in world.people:
-        print(person)
+#    for person in world.people:
+#        print(person)
 
-    print()
-    print("EVENTS")
-    print("--------------------")
+#    print()
+#    print("EVENTS")
+#    print("--------------------")
 
-    for event in world.events:
-        print(event)
+#    for event in world.events:
+#        print(event)
 
-    print()
-    print(f"Food remaining: {world.food:.1f}")
+#    print()
+#    print(f"Food remaining: {world.food:.1f}")
 
     world.showStatus()

@@ -42,23 +42,29 @@ class Person:
 
         return hungerAboveThreshold ** 2
 
+    def getFoodRequest(self):
+        if self.hunger <= self.hungerThreshold:
+            return 0
+
+        return self.hunger - self.hungerThreshold
+
     def evaluateWork(self, foodAvailable):
         foodNeed = max(0, 100 - foodAvailable)
         hungerPenalty = self.hunger * 0.5
 
         return max(0, foodNeed - hungerPenalty)
 
-    def evaluateRest(self, foodAvailable):
+    def evaluateRest(self):
         restNeed = 100 - self.energy
-        foodPressure = max(0, 100 - foodAvailable)
+        # foodPressure = max(0, 100 - foodAvailable)
 
-        return max(0, restNeed - foodPressure)
+        return restNeed
 
     def evaluateActions(self, foodAvailable):
         scores = {
             "eat": self.evaluateEat(foodAvailable),
             "work": self.evaluateWork(foodAvailable),
-            "rest": self.evaluateRest(foodAvailable)
+            "rest": self.evaluateRest()
         }
 
         return scores
